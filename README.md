@@ -3,6 +3,12 @@
 
 modified and extended version; see Changelog.txt 
 
+# Compile into a nginx 1.16 dynamic module
+
+Modify config to fit nginx 1.16.1.
+Config a nginx dynamic using './configure --add-dynamic-module=../nginx-sticky-module-ng/' with nginx source.
+Copy objs/nginx-stick-module.so to /etc/nginx/modules/
+
 # Description
 
 A nginx module to add a sticky cookie to be always forwarded to the same
@@ -47,17 +53,24 @@ Modify your compile of Nginx by adding the following directive
       server 127.0.0.1:9002;
     }
 
-	  sticky [hash=index|md5|sha1] [no_fallback]
-           [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
-       or
-	  sticky [hmac=md5|sha1 hmac_key=<foobar_key>] [no_fallback]
-           [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
-       or
-	  sticky [text=raw] [no_fallback]
-           [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
+	  sticky [name=route] [domain=.foo.bar] [path=/] [expires=1h] 
+           [hash=index|md5|sha1] [no_fallback] [secure] [httponly];
+  
+  
+- name:    the name of the cookies used to track the persistant upstream srv; 
+  default: route
 
-Server selection algorithm:
-- hash:    the hash mechanism to encode upstream server. It can't be used with hmac or text.
+- domain:  the domain in which the cookie will be valid
+  default: nothing. Let the browser handle this.
+
+- path:    the path in which the cookie will be valid
+  default: /
+
+- expires: the validity duration of the cookie
+  default: nothing. It's a session cookie.
+  restriction: must be a duration greater than one second
+
+- hash:    the hash mechanism to encode upstream server. It cant' be used with hmac.
   default: md5
 
     - md5|sha1: well known hash
@@ -67,33 +80,19 @@ Server selection algorithm:
     has changed, index values are not guaranted to
     correspond to the same server as before!
     USE IT WITH CAUTION and only if you need to!
-
+ 
 - hmac:    the HMAC hash mechanism to encode upstream server
     It's like the hash mechanism but it uses hmac_key
-    to secure the hashing. It can't be used with hash or text.
+    to secure the hashing. It can't be used with hash.
     md5|sha1: well known hash
+    default: none. see hash.
 
 - hmac_key: the key to use with hmac. It's mandatory when hmac is set
+           default: nothing.
 
 - no_fallback: when this flag is set, nginx will return a 502 (Bad Gateway or
               Proxy Error) if a request comes with a cookie and the
-              corresponding backend is unavailable. You can set it to the
-              upstream block, or set "sticky_no_fallback" in a server or
-              location block.
-
-Cookie settings:
-- name:    the name of the cookie used to track the persistant upstream srv;
-  default: route
-
-- domain:  the domain in which the cookie will be valid
-  default: none. Let the browser handle this.
-
-- path:    the path in which the cookie will be valid
-  default: /
-
-- expires: the validity duration of the cookie
-  default: nothing. It's a session cookie.
-  restriction: must be a duration greater than one second
+              corresponding backend is unavailable.
 
 - secure    enable secure cookies; transferred only via https
 - httponly  enable cookies not to be leaked via js
@@ -112,6 +111,7 @@ Cookie settings:
 
 - sticky module does not work with the "backup" option of the "server" configuration item.
 - sticky module might work with the nginx_http_upstream_check_module (up from version 1.2.3)
+- sticky module may require to configure nginx with SSL support (when using "secure" option)
   
 
 
